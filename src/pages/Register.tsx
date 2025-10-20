@@ -5,7 +5,7 @@ import { useUserStore } from "../store/userStore";
 const Register: React.FC = () => {
   const navigate = useNavigate();
   const { register } = useUserStore();
-
+  const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -13,16 +13,25 @@ const Register: React.FC = () => {
 
   const handleRegister = (e: React.FormEvent) => {
     e.preventDefault();
+    setError("");
+
+    // ✅ chỉ cần có @ là hợp lệ
+    if (!email.includes("@")) {
+      setError("Email không hợp lệ, phải chứa ký tự '@'!");
+      return;
+    }
+
     if (password !== confirm) {
       setError("Mật khẩu xác nhận không khớp!");
       return;
     }
 
-    const success = register(username, password);
-    if (success) {
-      navigate("/");
+    const ok = register(username, password, email);
+    if (ok) {
+      alert("Đăng ký thành công. Vui lòng đăng nhập.");
+      navigate("/login");
     } else {
-      setError("Tên đăng nhập đã tồn tại!");
+      setError("Tên đăng nhập hoặc email đã tồn tại!");
     }
   };
 
@@ -32,6 +41,14 @@ const Register: React.FC = () => {
         📝 Đăng ký tài khoản
       </h2>
       <form onSubmit={handleRegister} className="space-y-4">
+        <input
+          type="email"
+          placeholder="Email (phải chứa @)"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          className="w-full border px-3 py-2 rounded"
+          required
+        />
         <input
           type="text"
           placeholder="Tên đăng nhập"

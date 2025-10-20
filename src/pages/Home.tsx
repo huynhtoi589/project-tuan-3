@@ -1,6 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { useProducts } from "../hooks/useProducts";
+import { useProducts } from "../hooks/useProducts.tsx";
 import ProductCard from "../components/ProductCard";
 import type { Product } from "../types/product";
 import { useToast } from "../context/toastCore";
@@ -10,8 +10,6 @@ import "swiper/css";
 import "swiper/css/pagination";
 import NewsSection from "../components/NewsSection";
 import Footer from "../components/Footer";
-
-
 
 // ✅ Dùng đường dẫn public cho banner (không import trực tiếp)
 const banners = [
@@ -106,76 +104,72 @@ const Home: React.FC = () => {
         )}
       </section>
 
-      
-     {/* 💎 Section Diamond */}
-<section className="bg-white py-20">
-  <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-12 items-center px-6">
-    {/* Hình bên trái */}
-    <div className="flex justify-center">
-      <video
-        src="/video/banner-nhanKC.mp4"
-        autoPlay
-        muted
-        loop
-       playsInline
-       className="w-full max-w-md rounded-lg shadow-md"
-/>
+      {/* 💎 Section Diamond */}
+      <section className="bg-white py-20">
+        <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-12 items-center px-6">
+          {/* Hình bên trái */}
+          <div className="flex justify-center">
+            <video
+              src="/video/banner-nhanKC.mp4"
+              autoPlay
+              muted
+              loop
+              playsInline
+              className="w-full max-w-md rounded-lg shadow-md"
+            />
+          </div>
 
-    </div>
+          {/* Nội dung bên phải */}
+          <div className="text-center md:text-left">
+            <h2 className="text-4xl md:text-5xl font-extrabold text-gray-900 mb-6 leading-snug tracking-wide">
+              VẺ ĐẸP VĨNH CỬU
+              <br className="hidden md:block" />– TỎA SÁNG CÙNG
+              <span className="text-blue-600 ml-2">DIAMOND 💎</span>
+            </h2>
 
-    {/* Nội dung bên phải */}
-    <div className="text-center md:text-left">
-      <h2 className="text-4xl md:text-5xl font-extrabold text-gray-900 mb-6 leading-snug tracking-wide">
-        VẺ ĐẸP VĨNH CỬU<br className="hidden md:block" />– TỎA SÁNG CÙNG
-        <span className="text-blue-600 ml-2">DIAMOND 💎</span>
-      </h2>
+            <p className="text-gray-700 leading-relaxed mb-8 text-[17px] max-w-lg mx-auto md:mx-0">
+              <span className="font-semibold">Diamond Collection</span> mang đến
+              sự kết hợp hoàn hảo giữa nghệ thuật và tinh hoa chế tác. Mỗi viên
+              kim cương được tuyển chọn tỉ mỉ, phản chiếu ánh sáng rực rỡ và
+              tinh khiết – biểu tượng của sự sang trọng, thành công và tình yêu
+              bất diệt. Hãy để <span className="font-semibold">Diamond</span>{" "}
+              đồng hành cùng bạn, tôn vinh vẻ đẹp riêng và khoảnh khắc đáng nhớ
+              trong cuộc sống ✨
+            </p>
 
-      <p className="text-gray-700 leading-relaxed mb-8 text-[17px] max-w-lg mx-auto md:mx-0">
-        <span className="font-semibold">Diamond Collection</span> mang đến sự
-        kết hợp hoàn hảo giữa nghệ thuật và tinh hoa chế tác. Mỗi viên kim
-        cương được tuyển chọn tỉ mỉ, phản chiếu ánh sáng rực rỡ và tinh khiết –
-        biểu tượng của sự sang trọng, thành công và tình yêu bất diệt.  
-        Hãy để <span className="font-semibold">Diamond</span> đồng hành cùng bạn,
-        tôn vinh vẻ đẹp riêng và khoảnh khắc đáng nhớ trong cuộc sống ✨
-      </p>
+            <button
+              onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+              className="bg-black text-white px-8 py-3 rounded-lg font-semibold hover:bg-gray-800 transition-all duration-300 shadow-sm hover:shadow-md"
+            >
+              KHÁM PHÁ NGAY
+            </button>
+          </div>
+        </div>
 
-      <button
-        onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-        className="bg-black text-white px-8 py-3 rounded-lg font-semibold hover:bg-gray-800 transition-all duration-300 shadow-sm hover:shadow-md"
-      >
-        KHÁM PHÁ NGAY
-      </button>
-    </div>
-  </div>
+        {/* Dòng chữ KHÁM PHÁ DIAMOND */}
+        <div className="text-center mt-24">
+          <h3 className="text-gray-500 text-base font-semibold mb-2 tracking-wider uppercase">
+            KHÁM PHÁ
+          </h3>
+          <h1 className="text-6xl md:text-7xl font-extrabold text-gray-900 tracking-wider">
+            DIAMOND
+          </h1>
+          <p className="text-gray-400 mt-3 text-sm italic">
+            Shine Your Moment – Rực sáng từng khoảnh khắc ✨
+          </p>
+        </div>
+      </section>
 
-  {/* Dòng chữ KHÁM PHÁ DIAMOND */}
-  <div className="text-center mt-24">
-    <h3 className="text-gray-500 text-base font-semibold mb-2 tracking-wider uppercase">
-      KHÁM PHÁ
-    </h3>
-    <h1 className="text-6xl md:text-7xl font-extrabold text-gray-900 tracking-wider">
-      DIAMOND
-    </h1>
-    <p className="text-gray-400 mt-3 text-sm italic">
-      Shine Your Moment – Rực sáng từng khoảnh khắc ✨
-    </p>
-  </div>
-</section>
+      {/* 📰 Tin tức */}
+      <div className="bg-gray-50">
+        {/* ...Banner, sản phẩm nổi bật, video, v.v... */}
 
-     {/* 📰 Tin tức */}
-  <div className="bg-gray-50">
-    {/* ...Banner, sản phẩm nổi bật, video, v.v... */}
-
-    <NewsSection />  
-
-  </div>
-
+        <NewsSection />
+      </div>
     </div>
   );
 };
 
-<Footer />
-
-
+<Footer />;
 
 export default Home;

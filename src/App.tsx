@@ -8,17 +8,34 @@ import Contact from "./pages/Contact";
 import Cart from "./pages/Cart";
 import Checkout from "./pages/Checkout";
 import ProductDetail from "./pages/ProductDetail";
-import Products from "./pages/Products"; // ✅ Thêm trang danh sách sản phẩm
+import Products from "./pages/Products";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import { useUserStore } from "./store/userStore";
+import Admin from "./pages/Admin";
+import ResetPassword from "./pages/ResetPassword";
+// ✅ Kiểu Props cho route bảo vệ
+interface RouteProps {
+  children: React.ReactNode;
+}
 
-const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
+// ✅ Route yêu cầu người dùng đăng nhập
+const PrivateRoute: React.FC<RouteProps> = ({ children }) => {
   const { user } = useUserStore();
   return user ? <>{children}</> : <Navigate to="/login" replace />;
 };
 
-function App() {
+// ✅ Route chỉ dành cho admin
+const AdminRoute: React.FC<RouteProps> = ({ children }) => {
+  const { user } = useUserStore();
+  return user && user.role === "admin" ? (
+    <>{children}</>
+  ) : (
+    <Navigate to="/" replace />
+  );
+};
+
+const App: React.FC = () => {
   return (
     <>
       <Header />
@@ -32,11 +49,11 @@ function App() {
             <Route path="/products" element={<Products />} />
             <Route path="/product/:id" element={<ProductDetail />} />
 
-            {/* 📖 Thông tin */}
+            {/* 📖 Giới thiệu - Liên hệ */}
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />
 
-            {/* 🛍️ Giỏ hàng & Thanh toán */}
+            {/* 🛍️ Giỏ hàng + Thanh toán */}
             <Route path="/cart" element={<Cart />} />
             <Route
               path="/checkout"
@@ -50,8 +67,18 @@ function App() {
             {/* 👤 Đăng nhập / Đăng ký */}
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+            {/* 👑 Trang quản trị */}
+            <Route
+              path="/admin"
+              element={
+                <AdminRoute>
+                  <Admin />
+                </AdminRoute>
+              }
+            />
 
-            {/* ❌ Trang không tồn tại */}
+            {/* ❌ Redirect nếu không khớp route */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </div>
@@ -59,6 +86,6 @@ function App() {
       <Footer />
     </>
   );
-}
+};
 
 export default App;
