@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useUserStore } from "../store/userStore";
+import { toast } from "sonner";
 import type { Product, User } from "../types/product";
 
 const PRODUCT_KEY = "app_products";
@@ -28,10 +29,8 @@ export default function Admin() {
   const updateUser = useUserStore((s) => s.updateUser);
   const deleteUser = useUserStore((s) => s.deleteUser);
 
-  // -------------------- Tabs --------------------
   const [tab, setTab] = useState<"products" | "users">("products");
 
-  // -------------------- Products state --------------------
   const [items, setItems] = useState<Product[]>([]);
   const [title, setTitle] = useState("");
   const [price, setPrice] = useState("");
@@ -40,23 +39,22 @@ export default function Admin() {
   const [category, setCategory] = useState(CATEGORIES[0]);
   const [editingId, setEditingId] = useState<string | null>(null);
 
-  // -------------------- Users state --------------------
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<"admin" | "user">("user");
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
 
-  // -------------------- Load --------------------
   useEffect(() => {
     if (!user || user.role !== "admin") {
+      toast.error("⚠️ Bạn không có quyền truy cập trang quản trị!");
       navigate("/login");
       return;
     }
     setItems(loadProducts());
   }, [user, navigate]);
 
-  // -------------------- Product functions --------------------
+  // -------------------- PRODUCT --------------------
   function resetForm() {
     setTitle("");
     setPrice("");
@@ -67,7 +65,7 @@ export default function Admin() {
   }
 
   function handleAddOrUpdate() {
-    if (!title.trim()) return alert("Nhập tên sản phẩm");
+    if (!title.trim()) return toast.error("🚫 Vui lòng nhập tên sản phẩm!");
 
     const list = loadProducts();
 
@@ -82,6 +80,7 @@ export default function Admin() {
           description: desc,
           category,
         };
+        toast.success("✅ Cập nhật sản phẩm thành công!");
       }
     } else {
       const newItem: Product = {
@@ -94,6 +93,7 @@ export default function Admin() {
         createdAt: new Date().toISOString(),
       };
       list.unshift(newItem);
+      toast.success("🎉 Thêm sản phẩm mới thành công!");
     }
 
     saveProducts(list);
@@ -109,14 +109,25 @@ export default function Admin() {
     setImage(p.image || "");
     setDesc(p.description || "");
     setCategory(p.category || CATEGORIES[0]);
+    toast.info("✏️ Đang chỉnh sửa sản phẩm");
   }
 
   function onDelete(id: string) {
-    if (!confirm("Xác nhận xóa sản phẩm?")) return;
-    const arr = loadProducts().filter((x) => String(x.id) !== String(id));
-    saveProducts(arr);
-    window.dispatchEvent(new Event("app_products_updated"));
-    setItems(arr);
+    toast("🗑️ Xác nhận xóa sản phẩm này?", {
+      action: {
+        label: "Xóa",
+        onClick: () => {
+          const arr = loadProducts().filter((x) => String(x.id) !== String(id));
+          saveProducts(arr);
+          window.dispatchEvent(new Event("app_products_updated"));
+          setItems(arr);
+          toast.success("✅ Đã xóa sản phẩm thành công!");
+        },
+      },
+      cancel: {
+        label: "Hủy",
+      },
+    });
   }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -127,7 +138,7 @@ export default function Admin() {
     reader.readAsDataURL(file);
   };
 
-  // -------------------- User functions --------------------
+  // -------------------- USER --------------------
   function resetUserForm() {
     setUsername("");
     setEmail("");
@@ -142,18 +153,29 @@ export default function Admin() {
     setEmail(u.email);
     setPassword(u.password);
     setRole(u.role);
+    toast.info("✏️ Đang chỉnh sửa tài khoản");
   }
 
   function onDeleteUserHandler(id: string) {
-    if (!confirm("Xác nhận xóa tài khoản?")) return;
-    deleteUser(id);
-    if (editingUserId === id) resetUserForm();
+    toast("⚠️ Xác nhận xóa tài khoản này?", {
+      action: {
+        label: "Xóa",
+        onClick: () => {
+          deleteUser(id);
+          if (editingUserId === id) resetUserForm();
+          toast.success("🧹 Xóa tài khoản thành công!");
+        },
+      },
+      cancel: {
+        label: "Hủy",
+      },
+    });
   }
 
   return (
     <div className="p-6 max-w-6xl mx-auto">
-      <h2 className="text-2xl font-semibold mb-4 text-center">
-        Trang Quản Trị
+      <h2 className="text-2xl font-semibold mb-4 text-center text-blue-600">
+        🛠️ Trang Quản Trị
       </h2>
 
       {/* Tabs */}
@@ -229,7 +251,7 @@ export default function Admin() {
               <div className="md:col-span-4">
                 <button
                   type="submit"
-                  className="w-full bg-green-600 text-white px-4 py-2 rounded"
+                  className="w-full bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
                 >
                   {editingId ? "Cập nhật" : "Thêm"}
                 </button>
@@ -269,13 +291,13 @@ export default function Admin() {
                     <td className="p-3">
                       <button
                         onClick={() => onEdit(p)}
-                        className="px-3 py-1 mr-2 bg-blue-500 text-white rounded"
+                        className="px-3 py-1 mr-2 bg-blue-500 text-white rounded hover:bg-blue-600"
                       >
                         Sửa
                       </button>
                       <button
                         onClick={() => onDelete(String(p.id))}
-                        className="px-3 py-1 bg-red-500 text-white rounded"
+                        className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600"
                       >
                         Xóa
                       </button>
@@ -298,13 +320,12 @@ export default function Admin() {
       {/* -------------------- USERS -------------------- */}
       {tab === "users" && (
         <div>
-          {/* Form */}
           <div className="bg-white p-4 rounded shadow mb-6">
             <form
               onSubmit={(e) => {
                 e.preventDefault();
                 if (!username || !email || !password)
-                  return alert("Nhập đầy đủ thông tin");
+                  return toast.error("⚠️ Vui lòng nhập đầy đủ thông tin!");
                 if (editingUserId) {
                   updateUser(editingUserId, {
                     username,
@@ -312,8 +333,10 @@ export default function Admin() {
                     password,
                     role,
                   });
+                  toast.success("✅ Cập nhật tài khoản thành công!");
                 } else {
                   addUser({ username, email, password, role });
+                  toast.success("🎉 Thêm tài khoản mới thành công!");
                 }
                 resetUserForm();
               }}
@@ -350,7 +373,7 @@ export default function Admin() {
               <div className="md:col-span-4">
                 <button
                   type="submit"
-                  className="w-full bg-green-600 text-white px-4 py-2 rounded"
+                  className="w-full bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
                 >
                   {editingUserId ? "Cập nhật" : "Thêm"}
                 </button>
@@ -358,7 +381,6 @@ export default function Admin() {
             </form>
           </div>
 
-          {/* Table */}
           <div className="bg-white rounded shadow overflow-hidden">
             <table className="w-full text-left">
               <thead className="bg-gray-100">
@@ -378,13 +400,13 @@ export default function Admin() {
                     <td className="p-3">
                       <button
                         onClick={() => onEditUser(u)}
-                        className="px-3 py-1 mr-2 bg-blue-500 text-white rounded"
+                        className="px-3 py-1 mr-2 bg-blue-500 text-white rounded hover:bg-blue-600"
                       >
                         Sửa
                       </button>
                       <button
                         onClick={() => onDeleteUserHandler(u.id)}
-                        className="px-3 py-1 bg-red-500 text-white rounded"
+                        className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600"
                       >
                         Xóa
                       </button>

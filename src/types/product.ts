@@ -1,13 +1,17 @@
 export interface Product {
-  id: string;
+  id: number;
   title: string;
   price: number;
-  image: string; // link ảnh nhập từ Admin
-  description: string;
+  image: string;
   category?: string;
-  createdAt: string;
+  description?: string;
+  material?: string; // ✅ thêm dòng này
 }
 
-export interface CartItem extends Product {
+export interface CartItem {
+  id: string | number;
+  title: string;
+  price: number;
+  image?: string;
   quantity: number;
 }

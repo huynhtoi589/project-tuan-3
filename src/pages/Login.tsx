@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useUserStore } from "../store/userStore";
+import { toast } from "sonner";
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
@@ -9,23 +10,32 @@ const Login: React.FC = () => {
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    const ok = login(identifier, password);
+    setLoading(true);
+    setError("");
 
-    if (ok) {
-      const currentUser = useUserStore.getState().user; // lấy user mới nhất sau khi login
+    // Giả lập độ trễ nhỏ để có hiệu ứng loading
+    await new Promise((resolve) => setTimeout(resolve, 800));
+
+    const result = login(identifier.trim(), password);
+    setLoading(false);
+
+    if (result.ok) {
+      const currentUser = useUserStore.getState().user;
 
       if (currentUser?.role === "admin") {
-        alert("Đăng nhập thành công (Admin)");
+        toast.success("🎉 Đăng nhập thành công (Admin)");
         navigate("/admin");
       } else {
-        alert("Đăng nhập thành công (User)");
+        toast.success("✅ Đăng nhập thành công");
         navigate("/");
       }
     } else {
-      setError("Thông tin đăng nhập không đúng");
+      setError(result.error || "Sai thông tin đăng nhập");
+      toast.error(result.error || "Sai thông tin đăng nhập");
     }
   };
 
@@ -34,6 +44,7 @@ const Login: React.FC = () => {
       <h2 className="text-2xl font-semibold text-center mb-4 text-blue-600">
         🔐 Đăng nhập
       </h2>
+
       <form onSubmit={handleLogin} className="space-y-4">
         <input
           type="text"
@@ -42,6 +53,7 @@ const Login: React.FC = () => {
           onChange={(e) => setIdentifier(e.target.value)}
           className="w-full border px-3 py-2 rounded"
           required
+          disabled={loading}
         />
         <input
           type="password"
@@ -50,13 +62,43 @@ const Login: React.FC = () => {
           onChange={(e) => setPassword(e.target.value)}
           className="w-full border px-3 py-2 rounded"
           required
+          disabled={loading}
         />
         {error && <p className="text-red-500 text-sm">{error}</p>}
         <button
           type="submit"
-          className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
+          className={`w-full flex items-center justify-center bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition ${
+            loading ? "opacity-70 cursor-not-allowed" : ""
+          }`}
+          disabled={loading}
         >
-          Đăng nhập
+          {loading ? (
+            <>
+              <svg
+                className="animate-spin h-5 w-5 mr-2 text-white"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8v8H4z"
+                ></path>
+              </svg>
+              Đang đăng nhập...
+            </>
+          ) : (
+            "Đăng nhập"
+          )}
         </button>
       </form>
 

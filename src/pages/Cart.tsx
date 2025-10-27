@@ -1,107 +1,228 @@
-import React from "react";
-import { Link } from "react-router-dom";
+import React, { useState } from "react";
 import { useCartStore } from "../store/cartStore";
+import { Link, useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
-// 💰 Hàm định dạng tiền tệ VNĐ
-const formatCurrency = (priceUSD: number): string => {
-  const rate = 25000; // 1 USD ≈ 25,000 VNĐ
-  const priceVND = priceUSD * rate;
-  return new Intl.NumberFormat("vi-VN", {
-    style: "currency",
-    currency: "VND",
-  }).format(priceVND);
-};
+interface ConfirmModalProps {
+  message: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+}
+
+const ConfirmModal: React.FC<ConfirmModalProps> = ({
+  message,
+  onConfirm,
+  onCancel,
+}) => (
+  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div className="bg-white rounded-lg p-6 shadow-lg max-w-sm w-full text-center">
+      <p className="text-lg text-gray-800 mb-4">{message}</p>
+      <div className="flex justify-center gap-3">
+        <button
+          onClick={onCancel}
+          className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition"
+        >
+          Hủy
+        </button>
+        <button
+          onClick={onConfirm}
+          className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition"
+        >
+          Xóa
+        </button>
+      </div>
+    </div>
+  </div>
+);
 
 const Cart: React.FC = () => {
-  const { cart, removeFromCart, clearCart, increaseQty, decreaseQty } =
+  const { items, removeFromCart, decreaseQuantity, addToCart, clearCart } =
     useCartStore();
+  const navigate = useNavigate();
 
-  const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const [confirm, setConfirm] = useState<{
+    message: string;
+    onConfirm: () => void;
+  } | null>(null);
 
-  if (cart.length === 0)
-    return (
-      <div className="text-center py-12">
-        <h2 className="text-xl mb-4">🛒 Giỏ hàng trống</h2>
-        <Link to="/" className="text-blue-600 underline hover:text-blue-800">
-          Tiếp tục mua sắm
-        </Link>
-      </div>
+  const totalPrice = items.reduce(
+    (sum, item) => sum + Number(item.price) * item.quantity,
+    0
+  );
+
+  const askConfirm = (message: string, action: () => void) => {
+    setConfirm({ message, onConfirm: action });
+  };
+
+  const handleDecrease = (id: string | number, quantity: number) => {
+    if (quantity === 1) {
+      askConfirm(
+        "Bạn có chắc chắn muốn xóa sản phẩm này khỏi giỏ hàng không?",
+        () => {
+          decreaseQuantity(id);
+          toast.success("🗑️ Đã xóa sản phẩm khỏi giỏ hàng!", {
+            duration: 1000,
+            position: "top-center",
+          });
+        }
+      );
+    } else {
+      decreaseQuantity(id);
+    }
+  };
+
+  const handleRemove = (id: string | number) => {
+    askConfirm("Bạn có chắc chắn muốn xóa sản phẩm này không?", () => {
+      removeFromCart(id);
+      toast.success("🗑️ Đã xóa sản phẩm!", {
+        duration: 1000,
+        position: "top-center",
+      });
+    });
+  };
+
+  const handleClearCart = () => {
+    if (items.length === 0) {
+      toast.info("Giỏ hàng trống rồi!", {
+        duration: 1000,
+        position: "top-center",
+      });
+      return;
+    }
+
+    askConfirm(
+      "Bạn có chắc chắn muốn xóa tất cả sản phẩm trong giỏ hàng không?",
+      () => {
+        clearCart();
+        toast.success("🧹 Đã xóa toàn bộ giỏ hàng!", {
+          duration: 1000,
+          position: "top-center",
+        });
+      }
     );
+  };
+
+  const handleCheckout = () => {
+    if (items.length === 0) {
+      toast.error("Giỏ hàng trống, không thể thanh toán!", {
+        duration: 1000,
+        position: "top-center",
+      });
+      return;
+    }
+    navigate("/checkout");
+  };
 
   return (
-    <div className="max-w-5xl mx-auto px-6 py-10">
-      <h1 className="text-3xl font-bold mb-6 text-center text-blue-600">
-        Giỏ hàng của bạn
-      </h1>
+    <div className="max-w-4xl mx-auto bg-white p-6 rounded-lg shadow-md relative">
+      <h1 className="text-2xl font-semibold mb-4">🛒 Giỏ hàng của bạn</h1>
 
-      <div className="space-y-4">
-        {cart.map((item) => (
-          <div
-            key={item.id}
-            className="bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-200 p-4 flex items-center gap-4"
-          >
-            <img
-              src={item.image}
-              alt={item.title}
-              className="w-20 h-20 object-contain"
-            />
-            <div className="flex-1">
-              <p className="font-medium text-gray-800">{item.title}</p>
-              {/* 💰 Hiển thị giá tiền VNĐ */}
-              <p className="text-blue-600 font-semibold">
-                {formatCurrency(item.price)}
-              </p>
-            </div>
+      {items.length === 0 ? (
+        <p className="text-gray-600">
+          Giỏ hàng trống.{" "}
+          <Link to="/products" className="text-blue-600">
+            Mua sắm ngay!
+          </Link>
+        </p>
+      ) : (
+        <>
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className="bg-gray-100">
+                <th className="p-2 text-left">Sản phẩm</th>
+                <th className="p-2 text-center">Giá</th>
+                <th className="p-2 text-center">Số lượng</th>
+                <th className="p-2 text-center">Tổng</th>
+                <th className="p-2 text-center">Thao tác</th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((item) => (
+                <tr key={item.id} className="border-t">
+                  <td className="p-2 flex items-center gap-3">
+                    {item.image && (
+                      <img
+                        src={item.image}
+                        alt={item.title}
+                        className="w-12 h-12 object-cover rounded"
+                      />
+                    )}
+                    <span>{item.title}</span>
+                  </td>
+                  <td className="p-2 text-center">
+                    {Number(item.price).toLocaleString("vi-VN")} ₫
+                  </td>
+                  <td className="p-2 text-center">
+                    <div className="flex justify-center items-center gap-2">
+                      <button
+                        onClick={() => handleDecrease(item.id, item.quantity)}
+                        className="px-2 bg-gray-200 hover:bg-gray-300 rounded"
+                      >
+                        -
+                      </button>
+                      <span>{item.quantity}</span>
+                      <button
+                        onClick={() => addToCart({ ...item, quantity: 1 })}
+                        className="px-2 bg-gray-200 hover:bg-gray-300 rounded"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </td>
+                  <td className="p-2 text-center">
+                    {(Number(item.price) * item.quantity).toLocaleString(
+                      "vi-VN"
+                    )}{" "}
+                    ₫
+                  </td>
+                  <td className="p-2 text-center">
+                    <button
+                      onClick={() => handleRemove(item.id)}
+                      className="text-red-500 hover:underline"
+                    >
+                      Xóa
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
 
-            {/* ✅ Nút tăng giảm số lượng */}
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => decreaseQty(item.id)}
-                className="bg-gray-200 hover:bg-gray-300 px-2 rounded-md"
-              >
-                −
-              </button>
-              <span className="font-medium">{item.quantity}</span>
-              <button
-                onClick={() => increaseQty(item.id)}
-                className="bg-gray-200 hover:bg-gray-300 px-2 rounded-md"
-              >
-                +
-              </button>
-            </div>
-
-            {/* ❌ Xóa sản phẩm */}
+          <div className="flex justify-between items-center mt-6">
             <button
-              className="text-red-500 hover:text-red-600 ml-4 font-medium"
-              onClick={() => removeFromCart(item.id)}
+              onClick={handleClearCart}
+              className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
             >
-              Xóa
+              Xóa tất cả
+            </button>
+
+            <div className="text-lg font-semibold">
+              Tổng cộng:{" "}
+              <span className="text-blue-600">
+                {totalPrice.toLocaleString("vi-VN")} ₫
+              </span>
+            </div>
+
+            <button
+              onClick={handleCheckout}
+              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            >
+              Thanh toán
             </button>
           </div>
-        ))}
-      </div>
+        </>
+      )}
 
-      {/* 💵 Tổng cộng */}
-      <div className="text-right mt-8">
-        <p className="font-semibold text-xl mb-3 text-blue-600">
-          Tổng cộng: {formatCurrency(total)}
-        </p>
-
-        <div className="flex justify-end gap-3">
-          <button
-            onClick={clearCart}
-            className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition-all"
-          >
-            Xóa giỏ
-          </button>
-          <Link
-            to="/checkout"
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all"
-          >
-            Thanh toán
-          </Link>
-        </div>
-      </div>
+      {confirm && (
+        <ConfirmModal
+          message={confirm.message}
+          onConfirm={() => {
+            confirm.onConfirm();
+            setConfirm(null);
+          }}
+          onCancel={() => setConfirm(null)}
+        />
+      )}
     </div>
   );
 };

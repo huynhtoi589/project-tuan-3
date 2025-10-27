@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useUserStore } from "../store/userStore";
+import { toast } from "sonner"; // ✅ thêm thư viện sonner để hiển thị thông báo
 
 const Register: React.FC = () => {
   const navigate = useNavigate();
@@ -15,23 +16,28 @@ const Register: React.FC = () => {
     e.preventDefault();
     setError("");
 
-    // ✅ chỉ cần có @ là hợp lệ
+    // ✅ Kiểm tra email hợp lệ
     if (!email.includes("@")) {
       setError("Email không hợp lệ, phải chứa ký tự '@'!");
+      toast.error("📧 Email không hợp lệ, phải chứa ký tự '@'!");
       return;
     }
 
+    // ✅ Kiểm tra mật khẩu xác nhận
     if (password !== confirm) {
       setError("Mật khẩu xác nhận không khớp!");
+      toast.error("🔒 Mật khẩu xác nhận không khớp!");
       return;
     }
 
+    // ✅ Gọi hàm register từ Zustand
     const ok = register(username, password, email);
     if (ok) {
-      alert("Đăng ký thành công. Vui lòng đăng nhập.");
+      toast.success("🎉 Đăng ký thành công! Vui lòng đăng nhập.");
       navigate("/login");
     } else {
       setError("Tên đăng nhập hoặc email đã tồn tại!");
+      toast.error("⚠️ Tên đăng nhập hoặc email đã tồn tại!");
     }
   };
 
@@ -40,6 +46,7 @@ const Register: React.FC = () => {
       <h2 className="text-2xl font-semibold text-center mb-4 text-green-600">
         📝 Đăng ký tài khoản
       </h2>
+
       <form onSubmit={handleRegister} className="space-y-4">
         <input
           type="email"
@@ -73,14 +80,17 @@ const Register: React.FC = () => {
           className="w-full border px-3 py-2 rounded"
           required
         />
+
         {error && <p className="text-red-500 text-sm">{error}</p>}
+
         <button
           type="submit"
-          className="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700"
+          className="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700 transition"
         >
           Đăng ký
         </button>
       </form>
+
       <p className="mt-4 text-center text-sm">
         Đã có tài khoản?{" "}
         <button
