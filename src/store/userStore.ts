@@ -12,18 +12,15 @@ interface UserStore {
   user: User | null;
   users: User[];
 
-  // auth
   register: (username: string, password: string, email: string) => boolean;
-  login: (identifier: string, password: string) => boolean;
+  login: (identifier: string, password: string) => { ok: boolean; error?: string };
   logout: () => void;
 
-  // admin / management
   addUser: (data: Omit<User, "id">) => User;
   updateUser: (id: string, patch: Partial<User>) => User | null;
   deleteUser: (id: string) => boolean;
-  loadUsers: () => void;
 
-  // ensure admin exists
+  loadUsers: () => void;
   ensureAdmin: () => void;
 }
 
@@ -33,8 +30,7 @@ const SESSION_KEY = "session";
 const loadUsersFromStorage = (): User[] => {
   try {
     const raw = localStorage.getItem(USERS_KEY);
-    if (!raw) return [];
-    return JSON.parse(raw) as User[];
+    return raw ? JSON.parse(raw) : [];
   } catch {
     return [];
   }
@@ -45,13 +41,12 @@ const saveUsersToStorage = (users: User[]) => {
 };
 
 export const useUserStore = create<UserStore>((set, get) => {
-  // load users
-  const stored = loadUsersFromStorage();
+  let stored = loadUsersFromStorage();
 
-  // ensure admin exists
-  if (!stored.find((u) => u.email === "admin@gmail.com")) {
+  // ✅ Luôn đảm bảo có Admin mặc định
+  if (!stored.some((u) => u.email === "admin@gmail.com")) {
     const admin: User = {
-      id: "admin-1",
+      id: `admin-${Date.now()}`,
       username: "admin",
       email: "admin@gmail.com",
       password: "admin123",
@@ -68,39 +63,40 @@ export const useUserStore = create<UserStore>((set, get) => {
     user: sessionUser,
     users: stored,
 
-    register: (username: string, password: string, email: string) => {
-      // chỉ cần có @ là hợp lệ
-      if (!email.includes("@")) return false;
-
+    register: (username, password, email) => {
       const users = get().users;
-      if (users.find((u) => u.username === username || u.email === email)) {
-        return false;
-      }
+
+      if (!email.includes("@")) return false;
+      if (users.some((u) => u.email === email || u.username === username)) return false;
 
       const newUser: User = {
         id: `user-${Date.now()}`,
         username,
         email,
         password,
-        role: "user", // 🔥 mặc định role user
+        role: "user",
       };
+
       const updated = [...users, newUser];
       saveUsersToStorage(updated);
       set({ users: updated });
+
       return true;
     },
 
-    login: (identifier: string, password: string) => {
-      const users = get().users;
-      const found = users.find(
-        (u) =>
-          (u.username === identifier || u.email === identifier) &&
-          u.password === password
+    login: (identifier, password) => {
+      const found = get().users.find(
+        (u) => u.email === identifier || u.username === identifier
       );
-      if (!found) return false;
+
+      if (!found) return { ok: false, error: "Tài khoản không tồn tại!" };
+      if (found.password !== password)
+        return { ok: false, error: "Mật khẩu không chính xác!" };
+
       localStorage.setItem(SESSION_KEY, JSON.stringify(found));
       set({ user: found });
-      return true;
+
+      return { ok: true };
     },
 
     logout: () => {
@@ -108,51 +104,49 @@ export const useUserStore = create<UserStore>((set, get) => {
       set({ user: null });
     },
 
-    addUser: (data: Omit<User, "id">) => {
-      const users = get().users;
-      const newUser: User = { ...data, id: `user-${Date.now()}` };
-      const updated = [newUser, ...users];
+    addUser: (data) => {
+      const newUser: User = { id: `user-${Date.now()}`, ...data };
+      const updated = [newUser, ...get().users];
+
       saveUsersToStorage(updated);
       set({ users: updated });
+
       return newUser;
     },
 
-    updateUser: (id: string, patch: Partial<User>) => {
-      const users = get().users.slice();
-      const idx = users.findIndex((u) => u.id === id);
-      if (idx === -1) return null;
+    updateUser: (id, patch) => {
+      const users = [...get().users];
+      const index = users.findIndex((u) => u.id === id);
+      if (index === -1) return null;
 
-      users[idx] = { ...users[idx], ...patch };
+      const updated = { ...users[index], ...patch };
+      users[index] = updated;
+
       saveUsersToStorage(users);
       set({ users });
 
-      // nếu user hiện tại bị sửa, update session
-      const sessionRaw2 = localStorage.getItem(SESSION_KEY);
-      if (sessionRaw2) {
-        const s = JSON.parse(sessionRaw2) as User;
-        if (s.id === id) {
-          const updatedSession = { ...s, ...patch };
-          localStorage.setItem(SESSION_KEY, JSON.stringify(updatedSession));
-          set({ user: updatedSession });
-        }
+      // ✅ Nếu đang đăng nhập tài khoản đó → update session luôn
+      const s = get().user;
+      if (s && s.id === id) {
+        set({ user: updated });
+        localStorage.setItem(SESSION_KEY, JSON.stringify(updated));
       }
-      return users[idx];
+
+      return updated;
     },
 
-    deleteUser: (id: string) => {
+    deleteUser: (id) => {
       const users = get().users.filter((u) => u.id !== id);
       saveUsersToStorage(users);
       set({ users });
 
-      // nếu user hiện tại bị xóa → logout
-      const sessionRaw2 = localStorage.getItem(SESSION_KEY);
-      if (sessionRaw2) {
-        const s = JSON.parse(sessionRaw2) as User;
-        if (s.id === id) {
-          localStorage.removeItem(SESSION_KEY);
-          set({ user: null });
-        }
+      // ✅ Xoá phiên nếu là chính user đó
+      const s = get().user;
+      if (s && s.id === id) {
+        localStorage.removeItem(SESSION_KEY);
+        set({ user: null });
       }
+
       return true;
     },
 
@@ -163,7 +157,7 @@ export const useUserStore = create<UserStore>((set, get) => {
 
     ensureAdmin: () => {
       const users = get().users;
-      if (!users.find((u) => u.email === "admin@gmail.com")) {
+      if (!users.some((u) => u.role === "admin")) {
         const admin: User = {
           id: `admin-${Date.now()}`,
           username: "admin",

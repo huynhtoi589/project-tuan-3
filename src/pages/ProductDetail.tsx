@@ -1,86 +1,134 @@
-import { useParams, useNavigate } from "react-router-dom";
+import React, { useState } from "react";
+import { useParams, Link } from "react-router-dom";
+import { useProductStore } from "../store/productStore";
 import { useCartStore } from "../store/cartStore";
 import { useToast } from "../context/toastCore";
-import type { Product } from "../types/product";
+import ProductCard from "../components/ProductCard";
 
-const STORAGE_KEY = "app_products";
-
-const formatCurrency = (priceUSD: number): string => {
-  const rate = 25000;
-  const priceVND = priceUSD * rate;
-  return new Intl.NumberFormat("vi-VN", {
-    style: "currency",
-    currency: "VND",
-  }).format(priceVND);
-};
-
-const ProductDetail = () => {
+const ProductDetail: React.FC = () => {
   const { id } = useParams();
-  const navigate = useNavigate();
+  const { products } = useProductStore();
+  const product = products.find((p) => p.id === Number(id));
+
   const addToCart = useCartStore((state) => state.addToCart);
   const { showToast } = useToast();
 
-  const handleBack = () => navigate(-1);
-
-  const data: Product[] = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-  const product = data.find((p) => p.id === id);
+  const [qty, setQty] = useState(1);
 
   if (!product) {
     return (
-      <p className="text-center py-8 text-red-600">Không tìm thấy sản phẩm!</p>
+      <div className="text-center text-xl mt-20">
+        ❌ Không tìm thấy sản phẩm
+      </div>
     );
   }
 
-  const handleAddToCart = () => {
-    addToCart({ ...product, quantity: 1 });
-    showToast("✅ Đã thêm vào giỏ hàng!");
+  const related = products.filter(
+    (p) => p.category === product.category && p.id !== product.id
+  );
+
+  const increaseQty = () => {
+    if (qty < product.stock) setQty(qty + 1);
+  };
+
+  const decreaseQty = () => {
+    if (qty > 1) setQty(qty - 1);
+  };
+
+  const handleAdd = () => {
+    addToCart({
+      id: product.id,
+      title: product.name,
+      price: product.price,
+      image: product.image,
+      quantity: qty,
+    });
+    showToast(`🛒 Đã thêm ${qty} sản phẩm vào giỏ hàng!`);
   };
 
   return (
-    <div className="relative max-w-5xl mx-auto px-4 py-8">
-      <button
-        onClick={handleBack}
-        className="mb-6 inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 font-medium transition"
+    <div className="max-w-7xl mx-auto p-6">
+      <Link
+        to="/products"
+        className="text-sm text-gray-600 hover:text-black mb-6 inline-block"
       >
-        ⬅ Quay lại
-      </button>
+        ← Quay lại
+      </Link>
 
-      <div className="flex flex-col md:flex-row gap-8 bg-white shadow-md p-6 rounded-lg">
-        {/* Ảnh sản phẩm */}
-        <div className="flex-1 flex flex-col items-center">
-          {product.image && (
-            <img
-              src={product.image}
-              alt={product.title}
-              className="max-w-xs w-full object-contain rounded-md mb-4"
-            />
-          )}
-          {product.category && (
-            <span className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm">
-              {product.category}
-            </span>
-          )}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+        {/* Hình Ảnh */}
+        <div className="rounded-xl shadow p-4 bg-white flex items-center justify-center">
+          <img
+            src={product.image}
+            alt={product.name}
+            className="max-w-full max-h-[400px] object-contain"
+          />
         </div>
 
-        {/* Thông tin sản phẩm */}
-        <div className="flex-1 space-y-4">
-          <h1 className="text-2xl font-semibold text-gray-800">
-            {product.title}
-          </h1>
-          <p className="text-gray-600">{product.description}</p>
+        {/* Thông Tin */}
+        <div className="space-y-4">
+          <h1 className="text-3xl font-bold">{product.name}</h1>
 
-          <p className="text-lg font-bold text-blue-600">
-            {formatCurrency(product.price)}
+          <p className="text-red-600 text-2xl font-bold">
+            {product.price.toLocaleString()} đ
           </p>
 
-          <button
-            onClick={handleAddToCart}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition"
-          >
-            🛒 Thêm vào giỏ hàng
-          </button>
+          <div className="text-gray-600">
+            <p>
+              💎 Chất liệu:{" "}
+              <span className="font-medium">{product.category}</span>
+            </p>
+            <p>📦 Tồn kho: {product.stock} sản phẩm</p>
+          </div>
+
+          {/* Chọn số lượng */}
+          <div className="flex items-center gap-4 mt-4">
+            <button
+              onClick={decreaseQty}
+              className="w-10 h-10 flex justify-center items-center bg-gray-200 hover:bg-gray-300 rounded-full text-lg font-bold"
+            >
+              -
+            </button>
+
+            <span className="text-xl font-semibold">{qty}</span>
+
+            <button
+              onClick={increaseQty}
+              className="w-10 h-10 flex justify-center items-center bg-gray-200 hover:bg-gray-300 rounded-full text-lg font-bold"
+            >
+              +
+            </button>
+
+            <button
+              disabled={product.stock === 0}
+              onClick={handleAdd}
+              className={`flex-1 px-6 py-3 rounded-lg font-semibold transition text-white ${
+                product.stock > 0
+                  ? "bg-green-600 hover:bg-green-700"
+                  : "bg-gray-400 cursor-not-allowed"
+              }`}
+            >
+              {product.stock > 0 ? "🛒 Thêm vào giỏ hàng" : "Hết hàng"}
+            </button>
+          </div>
         </div>
       </div>
+
+      {/* Sản phẩm liên quan */}
+      {related.length > 0 && (
+        <div className="mt-16">
+          <h2 className="text-xl font-bold mb-4">🔗 Sản phẩm liên quan</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+            {related.map((p) => (
+              <ProductCard
+                key={p.id}
+                product={p}
+                onAddToCart={() => showToast("🛒 Đã thêm vào giỏ hàng!")}
+              />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

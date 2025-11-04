@@ -5,8 +5,15 @@ import { useUserStore } from "../store/userStore";
 import { useState } from "react";
 
 function Header() {
-  const cart = useCartStore((state) => state.cart);
-  const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+  // ✅ Lấy đúng tên biến trong store (items)
+  const items = useCartStore((state) => state.items);
+
+  // ✅ Gõ kiểu rõ ràng để tránh lỗi TypeScript
+  const totalItems = items.reduce(
+    (sum: number, item: { quantity: number }) => sum + item.quantity,
+    0
+  );
+
   const { user, logout } = useUserStore();
   const navigate = useNavigate();
   const [openMenu, setOpenMenu] = useState(false);
@@ -30,13 +37,13 @@ function Header() {
             Trang chủ
           </Link>
 
-          {/* Hiển thị link quản lý nếu user là admin */}
           {user?.role === "admin" && (
             <Link to="/admin" className="hover:text-blue-600 font-semibold">
               Quản lí
             </Link>
+            
           )}
-
+   
           <Link to="/products" className="hover:text-blue-600">
             Sản phẩm
           </Link>
@@ -56,6 +63,7 @@ function Header() {
               </span>
             )}
           </Link>
+          
 
           {/* 👤 Tài khoản */}
           {user ? (
@@ -96,6 +104,8 @@ function Header() {
           )}
         </nav>
       </div>
+  
+
     </header>
   );
 }
